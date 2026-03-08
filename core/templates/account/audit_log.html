@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Audit Log — AdminCore{% endblock %}
+{% block breadcrumb %}Audit Log{% endblock %}
+{% block nav_audit %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Audit <span>Log</span></h1>
+    <p>Full history of every action in the system</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="card" style="padding:16px 20px;margin-bottom:20px;">
+  <form method="get" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div class="search-box" style="min-width:180px;">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/></svg>
+      <input type="text" name="actor" value="{{ request.GET.actor }}" placeholder="Filter by actor…" />
+    </div>
+    <select name="action" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--font-mono);font-size:12px;padding:7px 12px;outline:none;">
+      <option value="">All Actions</option>
+      {% for val, label in action_choices %}
+        <option value="{{ val }}" {% if request.GET.action == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-ghost btn-sm">Filter</button>
+    {% if request.GET.actor or request.GET.action %}
+    <a href="{% url 'audit_log' %}" class="btn btn-ghost btn-sm">Clear</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Timestamp</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Model</th>
+        <th>Target</th>
+        <th>Detail</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in logs %}
+      <tr>
+        <td style="font-size:11px;white-space:nowrap;color:var(--muted);">
+          {{ log.timestamp|date:"Y-m-d" }}<br/>
+          <span style="font-family:var(--font-mono);">{{ log.timestamp|date:"H:i:s" }}</span>
+        </td>
+        <td>
+          {% if log.actor %}
+            <a href="{% url 'user_edit' log.actor.id %}">{{ log.actor.username }}</a>
+          {% else %}
+            <span class="text-muted">anonymous</span>
+          {% endif %}
+        </td>
+        <td>
+          <span class="log-action log-{{ log.action }}">{{ log.get_action_display }}</span>
+        </td>
+        <td style="font-size:12px;color:var(--muted);">{{ log.target_model|default:"—" }}</td>
+        <td style="font-size:12px;">{{ log.target_repr|default:"—" }}</td>
+        <td style="font-size:11px;color:var(--muted);max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
+            title="{{ log.detail }}">
+          {{ log.detail|default:"—" }}
+        </td>
+        <td style="font-size:11px;color:var(--muted);">{{ log.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr>
+        <td colspan="7" style="text-align:center;padding:48px;color:var(--muted);">No audit entries found.</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    <span class="pag-info">Page {{ page_obj.number }} of {{ paginator.num_pages }}</span>
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&action={{ request.GET.action }}&actor={{ request.GET.actor }}" class="page-btn">‹</a>
+    {% else %}
+      <button class="page-btn" disabled>‹</button>
+    {% endif %}
+    {% for num in paginator.page_range %}
+      {% if num == page_obj.number %}
+        <button class="page-btn active">{{ num }}</button>
+      {% elif num|add:"-2" <= page_obj.number and num|add:"2" >= page_obj.number %}
+        <a href="?page={{ num }}&action={{ request.GET.action }}&actor={{ request.GET.actor }}" class="page-btn">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&action={{ request.GET.action }}&actor={{ request.GET.actor }}" class="page-btn">›</a>
+    {% else %}
+      <button class="page-btn" disabled>›</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Profile — AdminCore{% endblock %}
+{% block breadcrumb %}My Profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>My <span>Profile</span></h1>
+    <p>Update your personal information and avatar</p>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;max-width:820px;">
+
+  <!-- Avatar card -->
+  <div class="card" style="padding:24px;display:flex;flex-direction:column;align-items:center;gap:16px;align-self:start;">
+    <img src="{{ profile.avatar_url }}" id="avatarPreview"
+         style="width:100px;height:100px;border-radius:50%;object-fit:cover;border:2px solid var(--border);" />
+    <div style="text-align:center;">
+      <div style="font-family:var(--font-head);font-weight:700;font-size:16px;">{{ target_user.username }}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px;">{{ target_user.groups.first.name|default:"No Role" }}</div>
+    </div>
+    <div style="width:100%;border-top:1px solid var(--border);padding-top:14px;font-size:11px;color:var(--muted);line-height:1.9;">
+      <div>Joined: {{ target_user.date_joined|date:"M d, Y" }}</div>
+      <div>Email: {{ target_user.email|default:"—" }}</div>
+      <div>Status: {% if target_user.is_active %}<span style="color:var(--success);">● Active</span>{% else %}<span style="color:var(--danger);">● Inactive</span>{% endif %}</div>
+      {% if target_user.is_superuser %}
+      <div><span class="badge badge-amber">Superuser</span></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Edit form card -->
+  <div class="form-card" style="max-width:100%;">
+    <div class="form-card-header">Edit Profile</div>
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-card-body">
+
+        <!-- Avatar upload -->
+        <div class="form-group">
+          <label>Profile Picture</label>
+          <div class="avatar-upload-area">
+            <input type="file" name="avatar" id="avatarInput"
+                   accept="image/jpeg,image/png,image/webp,image/gif" />
+            <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                 style="color:var(--muted);margin:0 auto 8px;display:block;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+            </svg>
+            <p>Click to upload or drag & drop<br/>JPEG, PNG, WebP — max 2MB</p>
+          </div>
+          {% if form.avatar.errors %}<div class="form-error">{{ form.avatar.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group {% if form.phone.errors %}field-error{% endif %}">
+          <label>Phone</label>
+          <input type="text" name="phone"
+                 value="{{ form.phone.value|default:'' }}"
+                 placeholder="+880 1700 000000" />
+          {% if form.phone.errors %}<div class="form-error">{{ form.phone.errors.0 }}</div>{% endif %}
+        </div>
+
+        <div class="form-group {% if form.email.errors %}field-error{% endif %}">
+            <label>Email</label>
+            <input type="email" name="email"
+                    value="{{ form.email.value|default:'' }}"
+                    placeholder="user@mail.com" />
+            {% if form.email.errors %}
+                <div class="form-error">{{ form.email.errors.0 }}</div>
+            {% endif %}
+        </div>
+
+        <div class="form-group {% if form.bio.errors %}field-error{% endif %}">
+          <label>Bio</label>
+          <textarea name="bio" placeholder="Tell us a little about yourself…">{{ form.bio.value|default:'' }}</textarea>
+          {% if form.bio.errors %}<div class="form-error">{{ form.bio.errors.0 }}</div>{% endif %}
+        </div>
+
+      </div>
+      <div class="form-card-footer">
+        <button type="submit" class="btn btn-primary">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          Save Profile
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    initAvatarPreview('avatarInput', 'avatarPreview');
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Weekly Report -- AdminCore{% endblock %}
+{% block breadcrumb %}Weekly Report{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'attendance_list' %}" class="btn btn-ghost btn-sm">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+  </svg>
+  Back
+</a>
+<a href="{% url 'attendance_report' %}" class="btn btn-ghost btn-sm">Monthly Report</a>
+<a href="{% url 'attendance_export_csv' %}?report_type=weekly&week_start={{ week_start|date:'Y-m-d' }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-csv btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  CSV
+</a>
+<a href="{% url 'attendance_export_excel' %}?report_type=weekly&week_start={{ week_start|date:'Y-m-d' }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-excel btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  Excel
+</a>
+<a href="{% url 'attendance_export_pdf' %}?report_type=weekly&week_start={{ week_start|date:'Y-m-d' }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-pdf btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  PDF
+</a>
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Weekly Report</h1>
+    <p>{{ week_start|date:"F d" }} &mdash; {{ week_end|date:"F d, Y" }}</p>
+  </div>
+</div>
+
+<!-- Always visible: Today's summary -->
+<div class="att-today-banner">
+  <div class="att-today-banner-title">
+    <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+    Today &mdash; {{ today|date:"l, F d, Y" }}
+  </div>
+  <div class="att-today-stats">
+    <div class="att-today-stat att-ts-present">
+      <div class="att-today-num">{{ today_present }}</div>
+      <div class="att-today-lbl">Present</div>
+    </div>
+    <div class="att-today-stat att-ts-absent">
+      <div class="att-today-num">{{ today_absent }}</div>
+      <div class="att-today-lbl">Absent</div>
+    </div>
+    <div class="att-today-stat att-ts-leave">
+      <div class="att-today-num">{{ today_leave }}</div>
+      <div class="att-today-lbl">Leave</div>
+    </div>
+    <div class="att-today-stat att-ts-half">
+      <div class="att-today-num">{{ today_half }}</div>
+      <div class="att-today-lbl">Half Day</div>
+    </div>
+    <div class="att-today-stat att-ts-late">
+      <div class="att-today-num">{{ today_late }}</div>
+      <div class="att-today-lbl">Late</div>
+    </div>
+    <a href="{% url 'attendance_list' %}?view=today" class="att-today-link">
+      View Details
+      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</div>
+
+<!-- Week navigation + employee filter -->
+<div class="table-wrap" style="margin-bottom:16px;">
+  <div class="att-week-nav">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <a href="?week_start={{ prev_week|date:'Y-m-d' }}{% if selected_emp %}&employee={{ selected_emp }}{% endif %}"
+         class="btn btn-ghost btn-sm">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        Prev
+      </a>
+      <span class="att-week-label">
+        {{ week_start|date:"M d" }} &ndash; {{ week_end|date:"M d, Y" }}
+      </span>
+      {% if next_week <= today %}
+      <a href="?week_start={{ next_week|date:'Y-m-d' }}{% if selected_emp %}&employee={{ selected_emp }}{% endif %}"
+         class="btn btn-ghost btn-sm">
+        Next
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </a>
+      {% endif %}
+      <a href="{% url 'attendance_weekly_report' %}{% if selected_emp %}?employee={{ selected_emp }}{% endif %}"
+         class="btn btn-ghost btn-sm">This Week</a>
+    </div>
+
+    <form method="get" style="display:flex;align-items:center;gap:8px;">
+      <input type="hidden" name="week_start" value="{{ week_start|date:'Y-m-d' }}">
+      <select name="employee" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Employees</option>
+        {% for emp in all_employees %}
+        <option value="{{ emp.id }}" {% if selected_emp == emp.id|stringformat:"s" %}selected{% endif %}>
+          {{ emp.username }}{% if emp.get_full_name %} ({{ emp.get_full_name }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </form>
+  </div>
+</div>
+
+{% if report %}
+
+<!-- Weekly Report Table -->
+<div class="table-wrap" style="overflow-x:auto;">
+  <table class="att-report-table">
+    <thead>
+      <tr>
+        <th class="att-rth-emp">Employee</th>
+        {% for day in week_days %}
+        <th class="att-rth-day {% if day == today %}att-rth-today{% endif %}">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;">{{ day|date:"D" }}</div>
+          <div style="font-size:13px;font-weight:600;">{{ day|date:"d" }}</div>
+          <div style="font-size:10px;color:var(--text3);">{{ day|date:"M" }}</div>
+          {% if day == today %}<div class="att-today-dot"></div>{% endif %}
+        </th>
+        {% endfor %}
+        <th class="att-rth-sum" title="Present" style="color:var(--success);">P</th>
+        <th class="att-rth-sum" title="Absent"  style="color:var(--danger);">A</th>
+        <th class="att-rth-sum" title="Leave"   style="color:var(--warn);">L</th>
+        <th class="att-rth-sum" title="Half Day" style="color:#8b5cf6;">H</th>
+        <th class="att-rth-sum" title="Late"    style="color:#0891b2;">Lt</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in report %}
+      <tr>
+        <td class="att-rtd-emp">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;">
+              {{ row.employee.username|first|upper }}
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:var(--text);">{{ row.employee.username }}</div>
+              {% if row.employee.get_full_name %}
+              <div style="font-size:10px;color:var(--text3);">{{ row.employee.get_full_name }}</div>
+              {% endif %}
+            </div>
+          </div>
+        </td>
+
+        {% for att in row.day_records %}
+        <td style="text-align:center;padding:8px 4px;vertical-align:middle;">
+          {% if att %}
+            <span class="att-cell att-{{ att.status }}"
+              title="{{ att.get_status_display }}{% if att.check_in %} | In: {{ att.check_in|time:'H:i' }}{% endif %}{% if att.check_out %} | Out: {{ att.check_out|time:'H:i' }}{% endif %}">
+              {{ att.status|slice:":1"|upper }}
+            </span>
+            {% if att.check_in %}
+            <div style="font-size:9px;color:var(--text3);font-family:var(--font-mono);margin-top:3px;line-height:1;">
+              {{ att.check_in|time:"H:i" }}
+            </div>
+            {% endif %}
+          {% else %}
+            <span style="color:var(--border2);font-size:13px;">&ndash;</span>
+          {% endif %}
+        </td>
+        {% endfor %}
+
+        <td class="att-rth-sum" style="color:var(--success);font-weight:700;">{{ row.present }}</td>
+        <td class="att-rth-sum" style="color:var(--danger);font-weight:700;">{{ row.absent }}</td>
+        <td class="att-rth-sum" style="color:var(--warn);font-weight:700;">{{ row.leave }}</td>
+        <td class="att-rth-sum" style="color:#8b5cf6;font-weight:700;">{{ row.half }}</td>
+        <td class="att-rth-sum" style="color:#0891b2;font-weight:700;">{{ row.late }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+<div class="table-wrap">
+  <div class="ul-empty" style="padding:48px;">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+    </svg>
+    <p>No attendance records for this week</p>
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}

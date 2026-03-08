@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}My Check-In -- AdminCore{% endblock %}
+{% block breadcrumb %}My Check-In{% endblock %}
+{% block nav_checkin %}active{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>My Check-In</h1>
+    <p>{{ today|date:"l, F d, Y" }}</p>
+  </div>
+</div>
+
+<div style="max-width:560px;">
+
+  <!-- Status Card -->
+  <div class="ci-status-card">
+    <div class="ci-status-row">
+      <div class="ci-time-block">
+        <div class="ci-time-label">Check In</div>
+        <div class="ci-time-val" id="ciInTime">
+          {% if record and record.check_in %}{{ record.check_in|time:"H:i" }}{% else %}--:--{% endif %}
+        </div>
+      </div>
+      <div class="ci-arrow">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+        </svg>
+      </div>
+      <div class="ci-time-block">
+        <div class="ci-time-label">Check Out</div>
+        <div class="ci-time-val" id="ciOutTime">
+          {% if record and record.check_out %}{{ record.check_out|time:"H:i" }}{% else %}--:--{% endif %}
+        </div>
+      </div>
+      <div class="ci-arrow">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+        </svg>
+      </div>
+      <div class="ci-time-block">
+        <div class="ci-time-label">Hours</div>
+        <div class="ci-time-val" id="ciHours">
+          {% if record %}{{ record.hours_worked }}{% else %}--{% endif %}
+        </div>
+      </div>
+    </div>
+
+    {% if record %}
+    <div class="ci-office-row">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+      <span>{{ record.office.name|default:"Unknown Office" }}</span>
+      {% if record.location_verified %}
+        <span class="att-badge att-present">GPS Verified</span>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Office Selector -->
+  {% if offices|length > 1 %}
+  <div class="ci-office-select-wrap">
+    <label style="font-size:12px;font-weight:600;color:var(--text3);margin-bottom:6px;display:block;text-transform:uppercase;letter-spacing:0.06em;">Select Office</label>
+    <select id="officeSelect" class="filter-select" style="width:100%;">
+      {% for office in offices %}
+      <option value="{{ office.id }}" data-lat="{{ office.latitude }}" data-lng="{{ office.longitude }}" data-radius="{{ office.allowed_radius }}">
+        {{ office.name }} (radius: {{ office.allowed_radius }}m)
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  {% elif offices %}
+  <input type="hidden" id="officeSelect" value="{{ offices.0.id }}"
+         data-lat="{{ offices.0.latitude }}" data-lng="{{ offices.0.longitude }}"
+         data-radius="{{ offices.0.allowed_radius }}">
+  {% else %}
+  <div class="ci-result ci-result-error" style="display:block;margin-bottom:12px;">
+    No offices configured. Contact your administrator.
+  </div>
+  {% endif %}
+
+  <!-- GPS Status -->
+  <div class="ci-gps-box" id="gpsBox">
+    <div class="ci-gps-icon">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+      </svg>
+    </div>
+    <div style="min-width:0;">
+      <div class="ci-gps-title" id="gpsTitle">Detecting your location...</div>
+      <div class="ci-gps-sub" id="gpsSub">Please allow location access in your browser.</div>
+    </div>
+  </div>
+
+  <!-- Distance Bar -->
+  <div class="ci-distance-wrap" id="distanceWrap" style="display:none;">
+    <div class="ci-dist-bar-bg">
+      <div class="ci-dist-bar-fill" id="distBar"></div>
+    </div>
+    <div class="ci-dist-labels">
+      <span id="distLabel">-- m away</span>
+      <span id="distAllowed"></span>
+    </div>
+  </div>
+
+  <!-- Buttons -->
+  <div class="ci-actions">
+    {% if not checked_in %}
+    <button class="ci-btn ci-btn-in" id="btnCheckIn" disabled onclick="doAction('checkin')">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"/>
+      </svg>
+      Check In
+    </button>
+    {% elif not checked_out %}
+    <button class="ci-btn ci-btn-out" id="btnCheckOut" disabled onclick="doAction('checkout')">
+      <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+      </svg>
+      Check Out
+    </button>
+    {% else %}
+    <div class="ci-done-msg">
+      <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+      Attendance complete for today!
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Result -->
+  <div class="ci-result" id="ciResult" style="display:none;"></div>
+
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+let userLat = null, userLng = null, locationReady = false;
+
+function startGPS() {
+  if (!navigator.geolocation) { setGPS("error","GPS not supported",""); return; }
+  navigator.geolocation.watchPosition(onLocation, onGPSError,
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 });
+}
+
+function onLocation(pos) {
+  userLat = pos.coords.latitude;
+  userLng = pos.coords.longitude;
+  locationReady = true;
+  autoSelectNearestOffice();
+  checkDistance();
+}
+
+function onGPSError(err) {
+  var msgs = {1:"Location access denied. Allow location in browser settings.",
+              2:"Location unavailable. Try again.", 3:"Location request timed out."};
+  setGPS("error", msgs[err.code] || "Location error.", "");
+}
+
+function setGPS(state, title, sub) {
+  document.getElementById("gpsBox").className = "ci-gps-box ci-gps-" + state;
+  document.getElementById("gpsTitle").textContent = title;
+  document.getElementById("gpsSub").textContent = sub;
+}
+
+function autoSelectNearestOffice() {
+  var sel = document.getElementById("officeSelect");
+  if (!sel || sel.tagName !== "SELECT") return;
+  var bestIdx = 0, bestDist = Infinity;
+  for (var i = 0; i < sel.options.length; i++) {
+    var opt = sel.options[i];
+    var d = haversine(userLat, userLng,
+                      parseFloat(opt.dataset.lat),
+                      parseFloat(opt.dataset.lng));
+    if (d < bestDist) { bestDist = d; bestIdx = i; }
+  }
+  sel.selectedIndex = bestIdx;
+}
+
+function getOfficeData() {
+  var sel = document.getElementById("officeSelect");
+  if (!sel) return null;
+  if (sel.tagName === "INPUT") return { id: sel.value, lat: parseFloat(sel.dataset.lat), lng: parseFloat(sel.dataset.lng), radius: parseInt(sel.dataset.radius)||100, name:"Office" };
+  var opt = sel.options[sel.selectedIndex];
+  return { id: opt.value, lat: parseFloat(opt.dataset.lat), lng: parseFloat(opt.dataset.lng), radius: parseInt(opt.dataset.radius)||100, name: opt.text };
+}
+
+function haversine(a, b, c, d) {
+  var R=6371000, r=Math.PI/180, dL=(c-a)*r, dG=(d-b)*r;
+  var x=Math.sin(dL/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(dG/2)**2;
+  return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));
+}
+
+function checkDistance() {
+  var office = getOfficeData();
+  if (!office || !locationReady) return;
+  var dist = Math.round(haversine(userLat, userLng, office.lat, office.lng));
+  var inside = dist <= office.radius;
+  var pct = Math.min((dist / (office.radius * 1.5)) * 100, 100);
+
+  if (inside) {
+    setGPS("ok", "You are inside " + office.name, dist + "m from office (limit: " + office.radius + "m)");
+  } else {
+    setGPS("error", "Outside allowed zone", dist + "m away -- must be within " + office.radius + "m");
+  }
+
+  document.getElementById("distanceWrap").style.display = "block";
+  document.getElementById("distBar").style.width = pct + "%";
+  document.getElementById("distBar").style.background = inside ? "var(--success)" : "var(--danger)";
+  document.getElementById("distLabel").textContent = dist + "m away";
+  document.getElementById("distAllowed").textContent = "Limit: " + office.radius + "m";
+
+  ["btnCheckIn","btnCheckOut"].forEach(function(id) {
+    var btn = document.getElementById(id);
+    if (btn) btn.disabled = !inside;
+  });
+}
+
+function doAction(action) {
+  if (!locationReady) { showResult("error","Location not ready. Please wait."); return; }
+  var office = getOfficeData();
+  var btnId = action === "checkin" ? "btnCheckIn" : "btnCheckOut";
+  var btn = document.getElementById(btnId);
+  if (btn) { btn.disabled = true; btn.textContent = "Please wait..."; }
+
+  fetch("{% url 'checkin_submit' %}", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF },
+    body: JSON.stringify({ action: action, lat: userLat, lng: userLng, office_id: office ? office.id : null })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      showResult("success", data.message);
+      if (action === "checkin") document.getElementById("ciInTime").textContent = data.time;
+      else document.getElementById("ciOutTime").textContent = data.time;
+      setTimeout(function() { location.reload(); }, 1500);
+    } else {
+      showResult("error", data.message);
+      if (btn) btn.disabled = false;
+      checkDistance();
+    }
+  })
+  .catch(function() {
+    showResult("error", "Network error. Please try again.");
+    if (btn) btn.disabled = false;
+  });
+}
+
+function showResult(type, msg) {
+  var el = document.getElementById("ciResult");
+  el.style.display = "block";
+  el.className = "ci-result ci-result-" + type;
+  el.textContent = msg;
+}
+
+var sel = document.getElementById("officeSelect");
+if (sel && sel.tagName === "SELECT") sel.addEventListener("change", checkDistance);
+
+startGPS();
+</script>
+{% endblock %}

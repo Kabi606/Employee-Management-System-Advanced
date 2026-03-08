@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% block title %}Leave Balance -- AdminCore{% endblock %}
+{% block breadcrumb %}Leave Balance{% endblock %}
+{% block nav_leave %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Leave Balance</h1><p>{{ employee.username }} &mdash; {{ year }}</p></div>
+</div>
+
+<!-- Filters -->
+<div class="table-wrap" style="padding:14px 20px;margin-bottom:16px;">
+  <form method="get" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    {% if perms.account.view_leavebalance %}
+    <select name="employee" class="filter-select" onchange="this.form.submit()">
+      <option value="">My Balance</option>
+      {% for emp in all_employees %}
+      <option value="{{ emp.id }}" {% if selected_emp == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.username }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select name="year" class="filter-select" onchange="this.form.submit()">
+      {% for y in year_range %}
+      <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
+
+<!-- Balance cards -->
+<div class="lv-balance-grid">
+  {% for bal in balance_rows %}
+  <div class="lv-balance-card">
+    <div class="lv-balance-card-top">
+      <div>
+        <div style="font-size:14px;font-weight:700;color:var(--text);">{{ bal.leave_type.name }}</div>
+        <div style="font-size:11px;color:var(--text3);">{{ bal.leave_type.description|truncatechars:50 }}</div>
+      </div>
+      {% if perms.account.change_leavebalance and bal.id %}
+      <a href="{% url 'leave_balance_edit' bal.id %}" class="ul-action-btn" title="Edit">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+      </a>
+      {% endif %}
+    </div>
+
+    <!-- Numbers -->
+    <div class="lv-balance-nums">
+      <div class="lv-balance-num-block">
+        <div class="lv-balance-big lv-bal-remaining">{{ bal.remaining_days }}</div>
+        <div class="lv-balance-sub">Remaining</div>
+      </div>
+      <div class="lv-balance-num-block">
+        <div class="lv-balance-mid">{{ bal.used_days }}</div>
+        <div class="lv-balance-sub">Used</div>
+      </div>
+      <div class="lv-balance-num-block">
+        <div class="lv-balance-mid">{{ bal.total_days }}</div>
+        <div class="lv-balance-sub">Total</div>
+      </div>
+    </div>
+
+    <!-- Progress bar — use JS to set width to avoid widthratio issues -->
+    <div class="lv-bal-bar-wrap" style="margin-top:12px;">
+      <div class="lv-bal-bar lv-bal-bar-fill"
+           data-used="{{ bal.used_days }}"
+           data-total="{{ bal.total_days }}">
+      </div>
+    </div>
+    <div style="font-size:10px;color:var(--text3);text-align:right;margin-top:3px;">
+      {{ bal.used_days }} / {{ bal.total_days }} days used
+    </div>
+  </div>
+  {% empty %}
+  <div class="ul-empty" style="grid-column:1/-1;">
+    <p>No leave types configured yet.</p>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Recent approved leaves -->
+{% if recent_leaves %}
+<div class="table-wrap" style="margin-top:20px;">
+  <div style="padding:16px 20px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;">
+    Recent Approved Leaves ({{ year }})
+  </div>
+  <div class="desk-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Leave Type</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Days</th>
+          <th>Review Note</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in recent_leaves %}
+        <tr>
+          <td>
+            <span class="leave-type-badge">{{ req.leave_type.name }}</span>
+          </td>
+          <td style="font-size:12px;">{{ req.start_date|date:"M d, Y" }}</td>
+          <td style="font-size:12px;">{{ req.end_date|date:"M d, Y" }}</td>
+          <td style="font-weight:700;text-align:center;">{{ req.total_days }}</td>
+          <td style="font-size:12px;color:var(--text3);">{{ req.review_note|default:"--" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<script>
+// Set progress bar widths via JS — avoids widthratio template tag issues
+document.querySelectorAll('.lv-bal-bar-fill').forEach(function(bar) {
+  var used  = parseFloat(bar.dataset.used)  || 0;
+  var total = parseFloat(bar.dataset.total) || 1;
+  var pct   = Math.min(100, Math.round((used / total) * 100));
+  bar.style.width = pct + '%';
+});
+</script>
+{% endblock %}

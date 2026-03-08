@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block title %}Monthly Report -- AdminCore{% endblock %}
+{% block breadcrumb %}Attendance Report{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'attendance_list' %}" class="btn btn-ghost btn-sm">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+  </svg>
+  Back
+</a>
+<a href="{% url 'attendance_weekly_report' %}" class="btn btn-ghost btn-sm">Weekly Report</a>
+<!-- Download buttons -->
+<a href="{% url 'attendance_export_csv' %}?report_type=monthly&month={{ month }}&year={{ year }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-csv btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  CSV
+</a>
+<a href="{% url 'attendance_export_excel' %}?report_type=monthly&month={{ month }}&year={{ year }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-excel btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  Excel
+</a>
+<a href="{% url 'attendance_export_pdf' %}?report_type=monthly&month={{ month }}&year={{ year }}&employee={{ selected_emp }}"
+   class="btn btn-export btn-export-pdf btn-sm">
+  <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+      d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+  </svg>
+  PDF
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Monthly <span>Report</span></h1>
+    <p>{{ month_name }} {{ year }} attendance summary</p>
+  </div>
+</div>
+
+<!-- Report filters -->
+<form method="get" class="att-report-filters">
+  <select name="month" class="filter-select" onchange="this.form.submit()">
+    {% for num, name in month_choices %}
+    <option value="{{ num }}" {% if month == num %}selected{% endif %}>{{ name }}</option>
+    {% endfor %}
+  </select>
+  <select name="year" class="filter-select" onchange="this.form.submit()">
+    {% for y in year_range %}
+    <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}</option>
+    {% endfor %}
+  </select>
+  <select name="employee" class="filter-select" onchange="this.form.submit()">
+    <option value="">All Employees</option>
+    {% for emp in all_employees %}
+    <option value="{{ emp.id }}" {% if selected_emp == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.username }}</option>
+    {% endfor %}
+  </select>
+</form>
+
+{% if report %}
+<!-- Summary totals -->
+<div class="att-report-totals">
+  {% for row in report %}
+  {% if forloop.first and forloop.last %}
+  <!-- Single employee summary -->
+  <div class="att-sum-card att-sum-present"><div class="att-sum-num">{{ row.present }}</div><div class="att-sum-lbl">Present</div></div>
+  <div class="att-sum-card att-sum-absent"><div class="att-sum-num">{{ row.absent }}</div><div class="att-sum-lbl">Absent</div></div>
+  <div class="att-sum-card att-sum-leave"><div class="att-sum-num">{{ row.leave }}</div><div class="att-sum-lbl">Leave</div></div>
+  <div class="att-sum-card att-sum-half"><div class="att-sum-num">{{ row.half }}</div><div class="att-sum-lbl">Half Day</div></div>
+  <div class="att-sum-card att-sum-late"><div class="att-sum-num">{{ row.late }}</div><div class="att-sum-lbl">Late</div></div>
+  {% endif %}
+  {% endfor %}
+</div>
+
+<!-- Report matrix table -->
+<div class="att-report-wrap">
+  <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+    <table class="att-report-table">
+      <thead>
+        <tr>
+          <th class="att-rth-emp">Employee</th>
+          {% for d in all_days %}
+          <th class="att-rth-day {% if d.weekday >= 5 %}att-weekend{% endif %}" title="{{ d|date:'l, M d' }}">
+            <div>{{ d.day }}</div>
+            <div class="att-day-name">{{ d|date:"D"|slice:":2" }}</div>
+          </th>
+          {% endfor %}
+          <th class="att-rth-sum">P</th>
+          <th class="att-rth-sum">A</th>
+          <th class="att-rth-sum">L</th>
+          <th class="att-rth-sum">H</th>
+          <th class="att-rth-sum">Lt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report %}
+        <tr>
+          <td class="att-rtd-emp">
+            <div class="ul-user-cell">
+              <div class="avatar" style="width:26px;height:26px;font-size:10px;">{{ row.employee.username|first|upper }}</div>
+              <span style="font-size:12.5px;font-weight:500;">{{ row.employee.username }}</span>
+            </div>
+          </td>
+          {% for d in all_days %}
+          {% with rec=row.records|default_if_none:None %}
+          <td class="att-rtd-cell {% if d.weekday >= 5 %}att-weekend{% endif %}">
+            {% with entry=row.records|default:None %}
+            {% for k, v in row.records.items %}{% if k == d %}<span class="att-cell att-{{ v.status }}" title="{{ v.get_status_display }}{% if v.check_in %} | In: {{ v.check_in }}{% endif %}{% if v.check_out %} Out: {{ v.check_out }}{% endif %}">{{ v.status|slice:":1"|upper }}</span>{% endif %}{% endfor %}
+            {% endwith %}
+          </td>
+          {% endwith %}
+          {% endfor %}
+          <td class="att-rtd-sum att-sum-p">{{ row.present }}</td>
+          <td class="att-rtd-sum att-sum-a">{{ row.absent }}</td>
+          <td class="att-rtd-sum att-sum-l">{{ row.leave }}</td>
+          <td class="att-rtd-sum att-sum-h">{{ row.half }}</td>
+          <td class="att-rtd-sum att-sum-lt">{{ row.late }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Legend -->
+<div class="att-legend">
+  <span class="att-badge att-present">P = Present</span>
+  <span class="att-badge att-absent">A = Absent</span>
+  <span class="att-badge att-leave">L = Leave</span>
+  <span class="att-badge att-half">H = Half Day</span>
+  <span class="att-badge att-late">Lt = Late</span>
+</div>
+
+{% else %}
+<div class="ul-empty">
+  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+  </svg>
+  <p>No attendance data for {{ month_name }} {{ year }}</p>
+</div>
+{% endif %}
+
+{% endblock %}

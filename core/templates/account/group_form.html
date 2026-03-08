@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Group — AdminCore{% endblock %}
+{% block breadcrumb %}Groups / {% if object %}Edit{% else %}Create{% endif %}{% endblock %}
+{% block nav_groups %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>{% if object %}Edit <span>{{ object.name }}</span>{% else %}Create <span>Group</span>{% endif %}</h1>
+    <p>{% if object %}Update the role name{% else %}Add a new permission group / role{% endif %}</p>
+  </div>
+  <a href="{% url 'group_list' %}" class="btn btn-ghost">← Back to Groups</a>
+</div>
+
+<div class="form-card">
+  <div class="form-card-header">Group Details</div>
+  <form method="post" action="{% if object %}{% url 'group_edit' object.id %}{% else %}{% url 'group_create' %}{% endif %}">
+    {% csrf_token %}
+    <div class="form-card-body">
+      <div class="form-group {% if form.name.errors %}field-error{% endif %}">
+        <label>Group Name <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="name"
+               value="{{ form.name.value|default:'' }}"
+               placeholder="e.g. Editors, Managers, Viewers"
+               required autofocus />
+        {% if form.name.errors %}
+          <div class="form-error">{{ form.name.errors.0 }}</div>
+        {% endif %}
+        <div class="form-hint">After creating the group, assign permissions from the Permissions menu.</div>
+      </div>
+    </div>
+    <div class="form-card-footer">
+      <a href="{% url 'group_list' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        {% if object %}Save Changes{% else %}Create Group{% endif %}
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

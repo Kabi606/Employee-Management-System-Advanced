@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — AdminCore{% endblock %}
+{% block breadcrumb %}Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Dash<span>board</span></h1>
+    <p>System overview and recent activity</p>
+  </div>
+</div>
+
+<!-- Stats -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">Total Users</div>
+    <div class="stat-value">{{ total_users }}</div>
+    <div class="stat-sub">Registered accounts</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Roles / Groups</div>
+    <div class="stat-value">{{ total_groups }}</div>
+    <div class="stat-sub">Active permission groups</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Logged In As</div>
+    <div class="stat-value" style="font-size:20px;padding-top:6px;">{{ request.user.username }}</div>
+    <div class="stat-sub">{{ request.user.groups.first.name|default:"No Role Assigned" }}</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Audit Events</div>
+    <div class="stat-value">{{ recent_logs|length }}+</div>
+    <div class="stat-sub">Recent actions tracked</div>
+  </div>
+</div>
+
+<!-- Recent Audit Log -->
+<div class="table-wrap">
+  <div class="table-toolbar">
+    <div style="font-family:var(--font-head);font-weight:700;font-size:14px;">Recent Activity</div>
+    <a href="{% url 'audit_log' %}" class="btn btn-ghost btn-sm">View All →</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th style="width:auto">Time</th>
+        <th>User</th>
+        <th>Action</th>
+        <th>Target</th>
+        <th>Detail</th>
+        <th>IP</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for log in recent_logs %}
+      <tr>
+        <td class="text-muted" style="white-space:nowrap;font-size:11px;">{{ log.timestamp|date:"M d, H:i" }}</td>
+        <td>
+          {% if log.actor %}
+            <a href="{% url 'user_edit' log.actor.id %}">{{ log.actor.username }}</a>
+          {% else %}
+            <span class="text-muted">—</span>
+          {% endif %}
+        </td>
+        <td><span class="log-action log-{{ log.action }}">{{ log.get_action_display }}</span></td>
+        <td style="font-size:12px;">
+          <span class="text-muted">{{ log.target_model }}</span>
+          {% if log.target_repr %}<br/><span>{{ log.target_repr }}</span>{% endif %}
+        </td>
+        <td style="font-size:11px;color:var(--muted);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          {{ log.detail }}
+        </td>
+        <td style="font-size:11px;" class="text-muted">{{ log.ip_address|default:"—" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">No activity yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

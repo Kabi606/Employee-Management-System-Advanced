@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Attendance -- AdminCore{% endblock %}
+{% block breadcrumb %}Attendance{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block topbar_actions %}
+  {% if perms.account.add_attendance %}
+  <a href="{% url 'attendance_create' %}" class="btn btn-primary btn-sm">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    <span class="btn-text">Mark Attendance</span>
+  </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>Attendance</h1>
+    <p id="dateRangeLabel">
+      {% if view_mode == "today" %}Today &mdash; {{ today|date:"l, F d, Y" }}
+      {% elif view_mode == "week" %}Week &mdash; {{ week_start|date:"M d" }} to {{ week_end|date:"M d, Y" }}
+      {% elif view_mode == "month" %}{{ current_month|date }} &mdash; {{ current_year }}
+      {% else %}Custom range{% endif %}
+    </p>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <a href="{% url 'attendance_weekly_report' %}" class="btn btn-ghost btn-sm">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <span class="btn-text">Weekly Report</span>
+    </a>
+    <a href="{% url 'attendance_report' %}" class="btn btn-ghost btn-sm">
+      <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      <span class="btn-text">Monthly Report</span>
+    </a>
+    <!-- Export buttons -->
+    <div class="att-export-group">
+      <span class="att-export-label">Export</span>
+      <a href="{% url 'attendance_export_csv' %}?report_type={{ view_mode }}&month={{ current_month }}&year={{ current_year }}&from={{ date_from }}&to={{ date_to }}"
+         class="btn btn-export btn-export-csv btn-sm" title="Download CSV">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        CSV
+      </a>
+      <a href="{% url 'attendance_export_excel' %}?report_type={{ view_mode }}&month={{ current_month }}&year={{ current_year }}&from={{ date_from }}&to={{ date_to }}"
+         class="btn btn-export btn-export-excel btn-sm" title="Download Excel">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        Excel
+      </a>
+      <a href="{% url 'attendance_export_pdf' %}?report_type={{ view_mode }}&month={{ current_month }}&year={{ current_year }}&from={{ date_from }}&to={{ date_to }}"
+         class="btn btn-export btn-export-pdf btn-sm" title="Download PDF">
+        <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+        </svg>
+        PDF
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="att-summary">
+  <div class="att-sum-card att-sum-present">
+    <div class="att-sum-num">{{ count_present }}</div>
+    <div class="att-sum-lbl">Present</div>
+  </div>
+  <div class="att-sum-card att-sum-absent">
+    <div class="att-sum-num">{{ count_absent }}</div>
+    <div class="att-sum-lbl">Absent</div>
+  </div>
+  <div class="att-sum-card att-sum-leave">
+    <div class="att-sum-num">{{ count_leave }}</div>
+    <div class="att-sum-lbl">On Leave</div>
+  </div>
+  <div class="att-sum-card att-sum-half">
+    <div class="att-sum-num">{{ count_half }}</div>
+    <div class="att-sum-lbl">Half Day</div>
+  </div>
+  <div class="att-sum-card att-sum-late">
+    <div class="att-sum-num">{{ count_late }}</div>
+    <div class="att-sum-lbl">Late</div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<form method="get" id="filterForm">
+<div class="table-wrap">
+
+  <!-- View Mode Tabs -->
+  <div class="att-view-tabs">
+    <button type="submit" name="view" value="today"
+      class="att-tab {% if view_mode == 'today' %}att-tab-active{% endif %}">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      Today
+    </button>
+    <button type="submit" name="view" value="week"
+      class="att-tab {% if view_mode == 'week' %}att-tab-active{% endif %}">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"/>
+      </svg>
+      This Week
+    </button>
+    <button type="submit" name="view" value="month"
+      class="att-tab {% if view_mode == 'month' %}att-tab-active{% endif %}">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586l5.414 5.414V19a2 2 0 01-2 2z"/>
+      </svg>
+      Monthly
+    </button>
+    <button type="button" onclick="toggleCustom()"
+      class="att-tab {% if view_mode == 'custom' %}att-tab-active{% endif %}" id="customTabBtn">
+      <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.553.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z"/>
+      </svg>
+      Custom Range
+    </button>
+  </div>
+
+  <!-- Month/Year selectors (shown when view=month) -->
+  <div class="att-month-bar" id="monthBar" style="display:none;">
+    <select name="month" class="filter-select" onchange="this.form.submit()">
+      {% for num, mname in month_choices %}
+      <option value="{{ num }}" {% if current_month == num|stringformat:"s" %}selected{% endif %}>{{ mname }}</option>
+      {% endfor %}
+    </select>
+    <select name="year" class="filter-select" onchange="this.form.submit()">
+      {% for y in year_range %}
+      <option value="{{ y }}" {% if current_year == y|stringformat:"s" %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    <input type="hidden" name="view" value="month">
+  </div>
+
+  <!-- Custom date range (shown when view=custom) -->
+  <div class="att-custom-bar" id="customBar" style="display:none;">
+    <input type="hidden" name="view" value="custom" id="customViewInput">
+    <div class="att-daterange">
+      <label>From</label>
+      <input type="date" name="from" value="{{ date_from }}" class="form-control att-date-input">
+      <label>To</label>
+      <input type="date" name="to" value="{{ date_to }}" class="form-control att-date-input">
+      <button type="submit" class="btn btn-primary btn-sm">Apply</button>
+      <div class="att-shortcuts">
+        <button type="button" class="att-shortcut" onclick="setRange(7)">Last 7 days</button>
+        <button type="button" class="att-shortcut" onclick="setRange(14)">Last 14 days</button>
+        <button type="button" class="att-shortcut" onclick="setRange(30)">Last 30 days</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Search + Status row -->
+  <div class="table-toolbar">
+    <div class="toolbar-left">
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search employee..."/>
+      </div>
+      <select name="status" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Status</option>
+        <option value="present" {% if selected_status == "present" %}selected{% endif %}>Present</option>
+        <option value="absent"  {% if selected_status == "absent"  %}selected{% endif %}>Absent</option>
+        <option value="leave"   {% if selected_status == "leave"   %}selected{% endif %}>Leave</option>
+        <option value="half"    {% if selected_status == "half"    %}selected{% endif %}>Half Day</option>
+        <option value="late"    {% if selected_status == "late"    %}selected{% endif %}>Late</option>
+      </select>
+      <button type="submit" class="btn btn-ghost btn-sm">Search</button>
+      {% if request.GET.q or request.GET.status %}
+      <a href="{% url 'attendance_list' %}?view={{ view_mode }}" class="btn btn-ghost btn-sm">Clear</a>
+      {% endif %}
+    </div>
+    <div class="toolbar-right" style="font-size:12px;color:var(--text3);">
+      {{ count_total }} record{{ count_total|pluralize }}
+    </div>
+  </div>
+
+  <!-- Mobile Cards -->
+  <div class="mob-cards">
+    {% for rec in records %}
+    <div class="mob-card">
+      <div class="mob-card-row">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="avatar" style="width:34px;height:34px;font-size:13px;">{{ rec.employee.username|first|upper }}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px;">{{ rec.employee.username }}</div>
+            <div style="font-size:11px;color:var(--text3);">{{ rec.date|date:"D, M d, Y" }}</div>
+          </div>
+        </div>
+        <span class="att-badge att-{{ rec.status }}">{{ rec.get_status_display }}</span>
+      </div>
+      <div class="mob-card-row">
+        <span class="mob-card-label">Check In</span>
+        <span style="font-family:var(--font-mono);font-size:12px;">
+          {% if rec.check_in %}{{ rec.check_in|time:"H:i" }}{% else %}--{% endif %}
+        </span>
+      </div>
+      <div class="mob-card-row">
+        <span class="mob-card-label">Check Out</span>
+        <span style="font-family:var(--font-mono);font-size:12px;">
+          {% if rec.check_out %}{{ rec.check_out|time:"H:i" }}{% else %}--{% endif %}
+        </span>
+      </div>
+      <div class="mob-card-row">
+        <span class="mob-card-label">Hours</span>
+        <span style="font-size:12px;">{{ rec.hours_worked }}</span>
+      </div>
+      {% if rec.note %}<div class="mob-card-detail">{{ rec.note }}</div>{% endif %}
+      <div class="mob-card-actions">
+        {% if perms.account.change_attendance %}
+        <a href="{% url 'attendance_edit' rec.id %}" class="ul-mob-btn">Edit</a>
+        {% endif %}
+        {% if perms.account.delete_attendance %}
+        <button type="button" class="ul-mob-btn ul-mob-btn-danger"
+                data-url="{% url 'attendance_delete' rec.id %}"
+                data-label="{{ rec.employee.username }} on {{ rec.date }}"
+                onclick="openDeleteModal(this.dataset.url, this.dataset.label)">Delete</button>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="ul-empty">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+      </svg>
+      <p>No attendance records found</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Desktop Table -->
+  <div class="desk-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Date</th>
+          <th>Check In</th>
+          <th>Check Out</th>
+          <th>Hours</th>
+          <th>Status</th>
+          <th>Office</th>
+          <th>Note</th>
+          {% if perms.account.change_attendance or perms.account.delete_attendance %}
+          <th style="text-align:right;padding-right:20px;">Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in records %}
+        <tr {% if rec.date == today %}class="att-today-row"{% endif %}>
+          <td>
+            <div class="ul-user-cell">
+              <div class="avatar" style="width:30px;height:30px;font-size:11px;">{{ rec.employee.username|first|upper }}</div>
+              <div>
+                <div style="font-weight:500;font-size:13px;">{{ rec.employee.username }}</div>
+                <div style="font-size:11px;color:var(--text3);">{{ rec.employee.get_full_name }}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-size:12px;white-space:nowrap;">
+            {{ rec.date|date:"D, M d, Y" }}
+            {% if rec.date == today %}<span class="att-today-tag">Today</span>{% endif %}
+          </td>
+          <td style="font-family:var(--font-mono);font-size:12px;">
+            {% if rec.check_in %}{{ rec.check_in|time:"H:i" }}{% else %}<span style="color:var(--text3);">--</span>{% endif %}
+          </td>
+          <td style="font-family:var(--font-mono);font-size:12px;">
+            {% if rec.check_out %}{{ rec.check_out|time:"H:i" }}{% else %}<span style="color:var(--text3);">--</span>{% endif %}
+          </td>
+          <td style="font-size:12px;color:var(--text2);">{{ rec.hours_worked }}</td>
+          <td><span class="att-badge att-{{ rec.status }}">{{ rec.get_status_display }}</span></td>
+          <td style="font-size:12px;color:var(--text3);">{{ rec.office.name|default:"--" }}</td>
+          <td style="font-size:12px;color:var(--text3);max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ rec.note|default:"--" }}
+          </td>
+          {% if perms.account.change_attendance or perms.account.delete_attendance %}
+          <td>
+            <div class="ul-actions">
+              {% if perms.account.change_attendance %}
+              <a href="{% url 'attendance_edit' rec.id %}" class="ul-action-btn" title="Edit">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </a>
+              {% endif %}
+              {% if perms.account.delete_attendance %}
+              <button type="button" class="ul-action-btn ul-action-danger" title="Delete"
+                      data-url="{% url 'attendance_delete' rec.id %}"
+                      data-label="{{ rec.employee.username }} on {{ rec.date }}"
+                      onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">
+          <div class="ul-empty">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p>No attendance records found</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <div class="pagination">
+    <span class="pag-info">{{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ paginator.count }}</span>
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&view={{ view_mode }}&q={{ request.GET.q }}&status={{ request.GET.status }}&from={{ date_from }}&to={{ date_to }}&month={{ current_month }}&year={{ current_year }}" class="page-btn">&#8249;</a>
+    {% else %}
+      <button class="page-btn" disabled>&#8249;</button>
+    {% endif %}
+    {% for num in paginator.page_range %}
+      {% if num == page_obj.number %}
+        <button class="page-btn active">{{ num }}</button>
+      {% elif num|add:"-2" <= page_obj.number and num|add:"2" >= page_obj.number %}
+        <a href="?page={{ num }}&view={{ view_mode }}&q={{ request.GET.q }}&status={{ request.GET.status }}&from={{ date_from }}&to={{ date_to }}&month={{ current_month }}&year={{ current_year }}" class="page-btn">{{ num }}</a>
+      {% endif %}
+    {% endfor %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&view={{ view_mode }}&q={{ request.GET.q }}&status={{ request.GET.status }}&from={{ date_from }}&to={{ date_to }}&month={{ current_month }}&year={{ current_year }}" class="page-btn">&#8250;</a>
+    {% else %}
+      <button class="page-btn" disabled>&#8250;</button>
+    {% endif %}
+  </div>
+  {% endif %}
+
+</div>
+</form>
+
+<script>
+var viewMode = "{{ view_mode }}";
+
+function toggleCustom() {
+  var bar = document.getElementById('customBar');
+  var btn = document.getElementById('customTabBtn');
+  var isOpen = bar.style.display !== 'none';
+  document.getElementById('monthBar').style.display = 'none';
+  if (isOpen) {
+    bar.style.display = 'none';
+    btn.classList.remove('att-tab-active');
+  } else {
+    bar.style.display = 'block';
+    btn.classList.add('att-tab-active');
+  }
+}
+
+function setRange(days) {
+  var today = new Date();
+  var from  = new Date(today);
+  from.setDate(today.getDate() - days + 1);
+  function fmt(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+  document.querySelector('input[name="from"]').value = fmt(from);
+  document.querySelector('input[name="to"]').value   = fmt(today);
+  document.getElementById('customViewInput').value   = 'custom';
+  document.getElementById('filterForm').submit();
+}
+
+if (viewMode === 'month') {
+  document.getElementById('monthBar').style.display = 'flex';
+}
+if (viewMode === 'custom') {
+  document.getElementById('customBar').style.display = 'block';
+  document.getElementById('customTabBtn').classList.add('att-tab-active');
+}
+</script>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Delete Leave Type -- AdminCore{% endblock %}
+{% block content %}
+<div class="page-header"><div><h1>Delete Leave Type</h1></div></div>
+<div class="table-wrap" style="padding:24px;max-width:420px;">
+  <p style="font-size:14px;margin-bottom:20px;">Are you sure you want to delete <strong>{{ object.name }}</strong>? This cannot be undone.</p>
+  <form method="post">
+    {% csrf_token %}
+    <div style="display:flex;gap:10px;">
+      <button type="submit" class="btn btn-danger">Yes, Delete</button>
+      <a href="{% url 'leavetype_list' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

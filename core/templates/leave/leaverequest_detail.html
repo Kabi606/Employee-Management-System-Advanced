@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Leave Request Detail -- AdminCore{% endblock %}
+{% block breadcrumb %}Leave Detail{% endblock %}
+{% block nav_leave %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Leave Request</h1><p>Full details</p></div>
+  <a href="{% url 'leave_request_list' %}" class="btn btn-ghost btn-sm">Back</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 300px;gap:20px;align-items:start;">
+  <div class="table-wrap" style="padding:24px;">
+    <div class="lv-detail-grid">
+      <div class="lv-detail-row"><span class="lv-detail-label">Employee</span><span class="lv-detail-val">{{ obj.employee.username }} {% if obj.employee.get_full_name %}({{ obj.employee.get_full_name }}){% endif %}</span></div>
+      <div class="lv-detail-row"><span class="lv-detail-label">Leave Type</span>
+        <span class="leave-type-badge">{{ obj.leave_type.name }}</span>
+      </div>
+      <div class="lv-detail-row"><span class="lv-detail-label">From</span><span class="lv-detail-val">{{ obj.start_date|date:"F d, Y" }}</span></div>
+      <div class="lv-detail-row"><span class="lv-detail-label">To</span><span class="lv-detail-val">{{ obj.end_date|date:"F d, Y" }}</span></div>
+      <div class="lv-detail-row"><span class="lv-detail-label">Total Days</span><span class="lv-detail-val" style="font-weight:700;font-size:16px;">{{ obj.total_days }}</span></div>
+      <div class="lv-detail-row"><span class="lv-detail-label">Status</span><span class="leave-status-badge leave-status-{{ obj.status }}">{{ obj.get_status_display }}</span></div>
+      <div class="lv-detail-row"><span class="lv-detail-label">Applied On</span><span class="lv-detail-val">{{ obj.created_at|date:"F d, Y H:i" }}</span></div>
+    </div>
+    {% if obj.reason %}
+    <div style="margin-top:20px;">
+      <div class="lv-detail-label" style="margin-bottom:6px;">Reason</div>
+      <div style="font-size:13px;color:var(--text2);line-height:1.6;background:var(--surface2);padding:12px;border-radius:var(--radius-sm);">{{ obj.reason }}</div>
+    </div>
+    {% endif %}
+    {% if obj.reviewed_by %}
+    <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+      <div class="lv-detail-label" style="margin-bottom:10px;">Review Details</div>
+      <div class="lv-detail-grid">
+        <div class="lv-detail-row"><span class="lv-detail-label">Reviewed By</span><span class="lv-detail-val">{{ obj.reviewed_by.username }}</span></div>
+        <div class="lv-detail-row"><span class="lv-detail-label">Reviewed At</span><span class="lv-detail-val">{{ obj.reviewed_at|date:"F d, Y H:i" }}</span></div>
+      </div>
+      {% if obj.review_note %}
+      <div style="margin-top:10px;font-size:13px;color:var(--text2);background:var(--surface2);padding:12px;border-radius:var(--radius-sm);">{{ obj.review_note }}</div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Actions sidebar -->
+  <div class="table-wrap" style="padding:20px;">
+    {% if obj.status == "pending" %}
+      {% if obj.employee == request.user %}
+      <form method="post" action="{% url 'leave_request_cancel' obj.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger" style="width:100%;" onclick="return confirm('Cancel this request?')">Cancel Request</button>
+      </form>
+      {% endif %}
+      {% if perms.account.change_leaverequest %}
+      <form method="post" action="{% url 'leave_review' obj.id %}" style="margin-top:10px;">
+        {% csrf_token %}
+        <div class="lv-review-actions" style="margin-bottom:10px;">
+          <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">Approve</button>
+          <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">Reject</button>
+        </div>
+        <textarea name="review_note" class="form-control" rows="3" placeholder="Review note..."></textarea>
+      </form>
+      {% endif %}
+    {% else %}
+    <div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">
+      This request has been {{ obj.get_status_display|lower }}.
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

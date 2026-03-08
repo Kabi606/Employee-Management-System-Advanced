@@ -1,0 +1,539 @@
+{% extends "base.html" %}
+{% block title %}{{ page_title }} -- AdminCore{% endblock %}
+{% block breadcrumb %}{{ page_title }}{% endblock %}
+{% block nav_office %}active{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1>{{ page_title }}</h1>
+    <p>Configure office GPS zone, working hours &amp; attendance rules</p>
+  </div>
+  <a href="{% url 'office_list' %}" class="btn btn-ghost btn-sm">
+    <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+    </svg>
+    Back to Offices
+  </a>
+</div>
+
+<form method="post" id="officeForm">
+{% csrf_token %}
+
+{% if form.non_field_errors %}
+<div style="margin-bottom:16px;">
+  {% for e in form.non_field_errors %}
+  <div class="alert alert-error">{{ e }}</div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Two-column layout: left=forms, right=sticky summary -->
+<div class="of-layout">
+
+  <!-- ═══════════════════════════════════════════
+       LEFT COLUMN — Form sections
+  ════════════════════════════════════════════ -->
+  <div class="of-main">
+
+    <!-- ── Section 1: Basic Info ── -->
+    <div class="of-card">
+      <div class="of-card-head">
+        <div class="of-card-icon of-icon-blue">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 8h6"/>
+          </svg>
+        </div>
+        <div>
+          <div class="of-card-title">Office Information</div>
+          <div class="of-card-sub">Basic details about this office location</div>
+        </div>
+      </div>
+      <div class="of-card-body">
+        <div class="form-row">
+          <div class="form-group {% if form.name.errors %}field-error{% endif %}">
+            <label>Office Name <span class="of-required">*</span></label>
+            {{ form.name }}
+            {% for e in form.name.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group {% if form.address.errors %}field-error{% endif %}">
+            <label>Address <span class="of-optional">optional</span></label>
+            {{ form.address }}
+            {% for e in form.address.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+        <!-- Active toggle -->
+        <div class="of-toggle-row">
+          <div class="of-toggle-info">
+            <div class="of-toggle-label">Office Active</div>
+            <div class="of-toggle-desc">Employees can only check in to active offices</div>
+          </div>
+          <label class="of-switch">
+            {{ form.is_active }}
+            <span class="of-switch-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Section 2: GPS Location ── -->
+    <div class="of-card">
+      <div class="of-card-head">
+        <div class="of-card-icon of-icon-green">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="of-card-title">GPS Location &amp; Radius</div>
+          <div class="of-card-sub">Define the check-in zone for this office</div>
+        </div>
+      </div>
+      <div class="of-card-body">
+
+        <div class="of-tip">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Open <strong>Google Maps</strong> &rarr; right-click your office building &rarr; click the coordinates shown at the top to copy them.</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group {% if form.latitude.errors %}field-error{% endif %}">
+            <label>Latitude <span class="of-required">*</span></label>
+            <div class="of-input-icon-wrap">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="of-input-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              </svg>
+              {{ form.latitude }}
+            </div>
+            <div class="form-help">e.g. 23.8103000 &mdash; from Google Maps</div>
+            {% for e in form.latitude.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group {% if form.longitude.errors %}field-error{% endif %}">
+            <label>Longitude <span class="of-required">*</span></label>
+            <div class="of-input-icon-wrap">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" class="of-input-icon">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+              </svg>
+              {{ form.longitude }}
+            </div>
+            <div class="form-help">e.g. 90.4125000 &mdash; from Google Maps</div>
+            {% for e in form.longitude.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+        <!-- Radius slider -->
+        <div class="form-group {% if form.allowed_radius.errors %}field-error{% endif %}">
+          <label>Allowed Check-in Radius <span class="of-required">*</span></label>
+          <div class="of-radius-row">
+            <input type="range" id="radiusSlider" min="50" max="1000" step="10" value="100" class="of-slider">
+            <div class="of-radius-badge" id="radiusBadge">100m</div>
+          </div>
+          <div style="display:none;">{{ form.allowed_radius }}</div>
+          <div class="of-radius-marks">
+            <span>50m (tight)</span><span>500m</span><span>1000m (loose)</span>
+          </div>
+          {% for e in form.allowed_radius.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 3: Working Hours ── -->
+    <div class="of-card">
+      <div class="of-card-head">
+        <div class="of-card-icon of-icon-amber">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="of-card-title">Working Hours</div>
+          <div class="of-card-sub">Set the official start and end of the work day</div>
+        </div>
+      </div>
+      <div class="of-card-body">
+
+        <!-- Visual time bar -->
+        <div class="of-timebar-wrap">
+          <div class="of-timebar-labels">
+            <span id="tbStart">09:00</span>
+            <span id="tbEnd">17:00</span>
+          </div>
+          <div class="of-timebar">
+            <div class="of-timebar-fill" id="tbFill"></div>
+            <div class="of-timebar-late" id="tbLate"></div>
+          </div>
+          <div class="of-timebar-legend">
+            <span><i class="of-dot of-dot-green"></i>Work window</span>
+            <span><i class="of-dot of-dot-amber"></i>Grace period</span>
+          </div>
+        </div>
+
+        <div class="form-row" style="margin-top:20px;">
+          <div class="form-group {% if form.work_start.errors %}field-error{% endif %}">
+            <label>
+              <i class="of-dot of-dot-green" style="margin-right:4px;"></i>
+              Work Start Time <span class="of-required">*</span>
+            </label>
+            {{ form.work_start }}
+            <div class="form-help">Check-in on or before this = Present</div>
+            {% for e in form.work_start.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div class="form-group {% if form.work_end.errors %}field-error{% endif %}">
+            <label>
+              <i class="of-dot of-dot-red" style="margin-right:4px;"></i>
+              Work End Time <span class="of-required">*</span>
+            </label>
+            {{ form.work_end }}
+            <div class="form-help">Auto check-out at this time if employee forgets</div>
+            {% for e in form.work_end.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── Section 4: Auto Status Rules ── -->
+    <div class="of-card">
+      <div class="of-card-head">
+        <div class="of-card-icon of-icon-purple">
+          <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+          </svg>
+        </div>
+        <div>
+          <div class="of-card-title">Auto Status Rules</div>
+          <div class="of-card-sub">System marks attendance automatically based on check-in time</div>
+        </div>
+      </div>
+      <div class="of-card-body">
+
+        <div class="form-row">
+          <div class="form-group {% if form.late_grace_minutes.errors %}field-error{% endif %}">
+            <label>Late Grace Period <span class="of-required">*</span></label>
+            {{ form.late_grace_minutes }}
+            <div class="form-help">Minutes after work start before marking Late. e.g. 15 = 9:01&ndash;9:15 is Late</div>
+            {% for e in form.late_grace_minutes.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+          </div>
+          <div></div>
+        </div>
+
+        <!-- Half Day Time Window -->
+        <div class="of-halfday-section">
+          <div class="of-halfday-header">
+            <div class="of-halfday-icon">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3"/>
+              </svg>
+            </div>
+            <div>
+              <div class="of-halfday-title">Half Day Window</div>
+              <div class="of-halfday-sub">Check-in within this time range = Half Day</div>
+            </div>
+          </div>
+          <div class="of-halfday-timebar">
+            <div class="of-halfday-slot" id="halfdaySlot">
+              <span id="hdStart">12:00</span>
+              <span class="of-halfday-arrow">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+                </svg>
+              </span>
+              <span id="hdEnd">15:00</span>
+              <span class="of-halfday-duration" id="hdDuration">3h 00m</span>
+            </div>
+          </div>
+          <div class="form-row" style="margin-top:14px;">
+            <div class="form-group {% if form.half_day_start.errors %}field-error{% endif %}">
+              <label>
+                <i class="of-dot" style="background:var(--warn);margin-right:4px;"></i>
+                Half Day Start <span class="of-required">*</span>
+              </label>
+              {{ form.half_day_start }}
+              <div class="form-help">{{ form.half_day_start.help_text }}</div>
+              {% for e in form.half_day_start.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+            </div>
+            <div class="form-group {% if form.half_day_end.errors %}field-error{% endif %}">
+              <label>
+                <i class="of-dot" style="background:var(--danger);margin-right:4px;"></i>
+                Half Day End <span class="of-required">*</span>
+              </label>
+              {{ form.half_day_end }}
+              <div class="form-help">{{ form.half_day_end.help_text }}</div>
+              {% for e in form.half_day_end.errors %}<div class="form-error">{{ e }}</div>{% endfor %}
+            </div>
+          </div>
+          <div class="of-halfday-note">
+            <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Check-in <strong>after</strong> Half Day End = <span class="of-badge-absent">Absent</span> automatically
+          </div>
+        </div>
+
+        <!-- Status rule cards -->
+        <div class="of-rules">
+          <div class="of-rule of-rule-present">
+            <div class="of-rule-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+              </svg>
+            </div>
+            <div class="of-rule-body">
+              <div class="of-rule-name">Present</div>
+              <div class="of-rule-time" id="rulePresent">On or before 09:00</div>
+            </div>
+          </div>
+          <div class="of-rule-arrow">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </div>
+          <div class="of-rule of-rule-late">
+            <div class="of-rule-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+            </div>
+            <div class="of-rule-body">
+              <div class="of-rule-name">Late</div>
+              <div class="of-rule-time" id="ruleLate">09:01 to 09:15</div>
+            </div>
+          </div>
+          <div class="of-rule-arrow">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </div>
+          <div class="of-rule of-rule-half">
+            <div class="of-rule-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3"/>
+              </svg>
+            </div>
+            <div class="of-rule-body">
+              <div class="of-rule-name">Half Day</div>
+              <div class="of-rule-time" id="ruleHalf">12:00 to 15:00</div>
+            </div>
+          </div>
+          <div class="of-rule-arrow">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+            </svg>
+          </div>
+          <div class="of-rule of-rule-absent">
+            <div class="of-rule-badge">
+              <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </div>
+            <div class="of-rule-body">
+              <div class="of-rule-name">No Show</div>
+              <div class="of-rule-time">No check-in at all</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Submit (mobile) -->
+    <div class="of-submit-mobile">
+      <a href="{% url 'office_list' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        {{ action }} Office
+      </button>
+    </div>
+
+  </div><!-- /of-main -->
+
+  <!-- ═══════════════════════════════════════════
+       RIGHT COLUMN — Sticky summary
+  ════════════════════════════════════════════ -->
+  <div class="of-sidebar">
+
+    <!-- Live Preview Card -->
+    <div class="of-preview-card">
+      <div class="of-preview-title">
+        <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+        </svg>
+        Live Preview
+      </div>
+
+      <div class="of-preview-name" id="prevName">New Office</div>
+
+      <div class="of-preview-rows" id="prevRows">
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--success)"></span>
+          <span class="of-preview-label">Present</span>
+          <span class="of-preview-val" id="pPresent">Before 09:00</span>
+        </div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:#0891b2"></span>
+          <span class="of-preview-label">Late</span>
+          <span class="of-preview-val" id="pLate">09:01 &ndash; 09:15</span>
+        </div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--warn)"></span>
+          <span class="of-preview-label">Half Day</span>
+          <span class="of-preview-val" id="pHalf">After 12:00</span>
+        </div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--danger)"></span>
+          <span class="of-preview-label">No Show</span>
+          <span class="of-preview-val">No check-in</span>
+        </div>
+        <div class="of-preview-divider"></div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--accent)"></span>
+          <span class="of-preview-label">Work hours</span>
+          <span class="of-preview-val" id="pHours">09:00 &ndash; 17:00</span>
+        </div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--text3)"></span>
+          <span class="of-preview-label">Auto checkout</span>
+          <span class="of-preview-val" id="pCheckout">at 17:00</span>
+        </div>
+        <div class="of-preview-row">
+          <span class="of-preview-dot" style="background:var(--success)"></span>
+          <span class="of-preview-label">GPS radius</span>
+          <span class="of-preview-val" id="pRadius">100m</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tips card -->
+    <div class="of-tips-card">
+      <div class="of-tips-title">Quick Tips</div>
+      <div class="of-tip-item">
+        <div class="of-tip-num">1</div>
+        <div>Right-click on Google Maps to copy exact coordinates</div>
+      </div>
+      <div class="of-tip-item">
+        <div class="of-tip-num">2</div>
+        <div>Set radius to 100m for a building, 300m for a campus</div>
+      </div>
+      <div class="of-tip-item">
+        <div class="of-tip-num">3</div>
+        <div>Grace period allows employees a buffer before marking Late</div>
+      </div>
+      <div class="of-tip-item">
+        <div class="of-tip-num">4</div>
+        <div>Run <code>auto_checkout</code> command daily via cron at work end</div>
+      </div>
+    </div>
+
+    <!-- Save button (desktop) -->
+    <div class="of-submit-desktop">
+      <a href="{% url 'office_list' %}" class="btn btn-ghost" style="width:100%;justify-content:center;">Cancel</a>
+      <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+        </svg>
+        {{ action }} Office
+      </button>
+    </div>
+
+  </div><!-- /of-sidebar -->
+
+</div><!-- /of-layout -->
+</form>
+
+<script>
+function pad(n) { return String(n).padStart(2,'0'); }
+function addMins(t, m) {
+  if (!t) return '';
+  var p = t.split(':'), d = new Date();
+  d.setHours(+p[0], +p[1] + m, 0);
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+function updateAll() {
+  var start    = document.getElementById('id_work_start').value || '09:00';
+  var end      = document.getElementById('id_work_end').value   || '17:00';
+  var grace    = parseInt(document.getElementById('id_late_grace_minutes').value) || 0;
+  var hdStart  = document.getElementById('id_half_day_start').value || '12:00';
+  var hdEnd    = document.getElementById('id_half_day_end').value   || '15:00';
+  var name     = document.getElementById('id_name').value || 'New Office';
+  var radius   = document.getElementById('radiusSlider').value;
+
+  var graceEnd = addMins(start, grace);
+
+  // Calculate half day duration
+  function toMin(t) { var p=(t||'00:00').split(':'); return +p[0]*60 + +p[1]; }
+  var hdMins = toMin(hdEnd) - toMin(hdStart);
+  if (hdMins < 0) hdMins = 0;
+  var hdH = Math.floor(hdMins / 60), hdM = hdMins % 60;
+  var hdLabel = hdH + 'h ' + (hdM > 0 ? hdM + 'm' : '00m');
+
+  // Update half day time bar slot
+  document.getElementById('hdStart').textContent    = hdStart;
+  document.getElementById('hdEnd').textContent      = hdEnd;
+  document.getElementById('hdDuration').textContent = hdLabel;
+
+  // Update rule flow cards
+  document.getElementById('rulePresent').textContent = 'On or before ' + start;
+  document.getElementById('ruleLate').textContent    = start + ' to ' + graceEnd;
+  document.getElementById('ruleHalf').textContent    = hdStart + ' to ' + hdEnd;
+
+  // Update sidebar preview
+  document.getElementById('prevName').textContent  = name;
+  document.getElementById('pPresent').textContent  = 'Before ' + start;
+  document.getElementById('pLate').innerHTML       = start + ' &ndash; ' + graceEnd;
+  document.getElementById('pHalf').innerHTML       = hdStart + ' &ndash; ' + hdEnd + ' (' + hdLabel + ')';
+  document.getElementById('pHours').innerHTML      = start + ' &ndash; ' + end;
+  document.getElementById('pCheckout').textContent = 'at ' + end;
+  document.getElementById('pRadius').textContent   = radius + 'm';
+
+  // Update main time bar
+  var total = 24*60;
+  var sMin  = toMin(start), eMin = toMin(end), gMin = toMin(graceEnd);
+  document.getElementById('tbStart').textContent = start;
+  document.getElementById('tbEnd').textContent   = end;
+  var fill = document.getElementById('tbFill');
+  var late = document.getElementById('tbLate');
+  fill.style.left  = (sMin/total*100) + '%';
+  fill.style.width = ((eMin-sMin)/total*100) + '%';
+  late.style.left  = (sMin/total*100) + '%';
+  late.style.width = ((gMin-sMin)/total*100) + '%';
+}
+
+// Radius slider sync
+var slider = document.getElementById('radiusSlider');
+var hiddenRadius = document.getElementById('id_allowed_radius');
+slider.value = hiddenRadius.value || 100;
+document.getElementById('radiusBadge').textContent = slider.value + 'm';
+
+slider.addEventListener('input', function() {
+  hiddenRadius.value = this.value;
+  document.getElementById('radiusBadge').textContent = this.value + 'm';
+  updateAll();
+});
+
+// Watch all inputs
+['id_work_start','id_work_end','id_late_grace_minutes','id_half_day_start','id_half_day_end','id_name'].forEach(function(id) {
+  var el = document.getElementById(id);
+  if (el) el.addEventListener('input', updateAll);
+  if (el) el.addEventListener('change', updateAll);
+});
+
+updateAll();
+</script>
+{% endblock %}

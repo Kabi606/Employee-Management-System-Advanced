@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Delete Attendance — AdminCore{% endblock %}
+{% block breadcrumb %}Delete Attendance{% endblock %}
+{% block nav_attendance %}active{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Delete <span>Attendance</span></h1></div></div>
+<div class="form-card">
+  <div class="form-card-header">Confirm Delete</div>
+  <div class="form-card-body">
+    <p>Are you sure you want to delete the attendance record for
+      <strong>{{ object.employee.username }}</strong> on <strong>{{ object.date|date:"M d, Y" }}</strong>?
+    </p>
+    <p style="color:var(--danger);font-size:13px;margin-top:8px;">This action cannot be undone.</p>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-card-footer">
+      <a href="{% url 'attendance_list' %}" class="btn btn-ghost btn-sm">Cancel</a>
+      <button type="submit" class="btn btn-danger btn-sm">Yes, Delete</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

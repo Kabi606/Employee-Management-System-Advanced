@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Edit Balance -- AdminCore{% endblock %}
+{% block breadcrumb %}Edit Balance{% endblock %}
+{% block nav_leave %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Edit Leave Balance</h1><p>{{ balance.employee.username }} &mdash; {{ balance.leave_type.name }} {{ balance.year }}</p></div>
+</div>
+<div class="table-wrap" style="padding:24px;max-width:420px;">
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-group">
+      <label class="form-label">Total Days Allocated</label>
+      <input type="number" name="total_days" value="{{ balance.total_days }}" class="form-control" min="0" max="365">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Used Days</label>
+      <input type="number" name="used_days" value="{{ balance.used_days }}" class="form-control" min="0" step="0.5">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:8px;">
+      <button type="submit" class="btn btn-primary">Save</button>
+      <a href="{% url 'leave_balance' %}" class="btn btn-ghost">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

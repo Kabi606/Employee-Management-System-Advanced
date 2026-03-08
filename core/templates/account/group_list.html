@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Groups — AdminCore{% endblock %}
+{% block breadcrumb %}Roles & Groups{% endblock %}
+{% block nav_groups %}active{% endblock %}
+
+{% block topbar_actions %}
+  {% if perms.auth.add_group %}
+  <a href="{% url 'group_create' %}" class="btn btn-primary btn-sm">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    New Group
+  </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Roles <span>&amp; Groups</span></h1>
+    <p>{{ groups|length }} group{{ groups|length|pluralize }}</p>
+  </div>
+</div>
+
+<form method="post" action="{% url 'group_bulk_delete' %}" id="groupBulkForm">
+  {% csrf_token %}
+
+  <div class="table-wrap">
+
+    <div class="table-toolbar">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span class="select-count"></span>
+      </div>
+      <div>
+        {% if perms.auth.delete_group %}
+        <button type="submit" class="btn btn-danger btn-sm" id="bulkDeleteBtn" disabled
+                onclick="return confirm('Delete selected groups? This cannot be undone.')">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Delete Selected
+        </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <table id="groupsTable">
+      <thead>
+        <tr>
+          <th><input type="checkbox" class="select-all" /></th>
+          <th>Name</th>
+          <th>Permissions</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for group in groups %}
+        <tr>
+          <td>
+            <input type="checkbox" name="ids" value="{{ group.id }}" class="row-check" />
+          </td>
+          <td>
+            <div style="font-weight:500;font-family:var(--font-head);">{{ group.name }}</div>
+          </td>
+          <td>
+            <span class="badge badge-gray">
+              {{ group.permissions.count }} permission{{ group.permissions.count|pluralize }}
+            </span>
+            {% if perms.auth.change_group %}
+            <a href="{% url 'group_permission_edit' group.id %}"
+               style="font-size:11px;margin-left:8px;">edit</a>
+            {% endif %}
+          </td>
+          <td>
+            <div class="table-actions">
+              {% if perms.auth.change_group %}
+              <a href="{% url 'group_edit' group.id %}" class="btn btn-ghost btn-sm">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Edit
+              </a>
+              {% endif %}
+              {% if perms.auth.delete_group %}
+              <button type="button" class="btn btn-danger btn-sm"
+                      data-url="{% url 'group_delete' group.id %}"
+                      data-label="{{ group.name }}"
+                      onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr>
+          <td colspan="4" style="text-align:center;padding:48px;color:var(--muted);">
+            No groups yet. Create one above.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+  </div>
+</form>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    initSelectAll('groupsTable');
+  });
+</script>
+{% endblock %}

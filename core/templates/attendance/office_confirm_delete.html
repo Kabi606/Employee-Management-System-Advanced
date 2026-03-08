@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Delete Office — AdminCore{% endblock %}
+{% block breadcrumb %}Delete Office{% endblock %}
+{% block nav_office %}active{% endblock %}
+
+{% block content %}
+<div class="page-header"><div><h1>Delete <span>Office</span></h1></div></div>
+<div class="form-card">
+  <div class="form-card-header">Confirm Delete</div>
+  <div class="form-card-body">
+    <p>Delete office <strong>{{ object.name }}</strong>?</p>
+    <p style="color:var(--danger);font-size:13px;margin-top:8px;">
+      Existing attendance records linked to this office will not be deleted, but the office reference will be cleared.
+    </p>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    <div class="form-card-footer">
+      <a href="{% url 'office_list' %}" class="btn btn-ghost btn-sm">Cancel</a>
+      <button type="submit" class="btn btn-danger btn-sm">Yes, Delete</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

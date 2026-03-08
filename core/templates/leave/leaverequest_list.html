@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+{% block title %}Leave Requests -- AdminCore{% endblock %}
+{% block breadcrumb %}Leave Requests{% endblock %}
+{% block nav_leave %}active{% endblock %}
+
+{% block topbar_actions %}
+<a href="{% url 'leave_request_create' %}" class="btn btn-primary btn-sm">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Apply for Leave
+</a>
+{% if perms.account.view_leavetype %}
+<a href="{% url 'leavetype_list' %}" class="btn btn-ghost btn-sm">Leave Types</a>
+{% endif %}
+{% if perms.account.view_leavebalance %}
+<a href="{% url 'leave_balance' %}" class="btn btn-ghost btn-sm">Balances</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Leave Requests</h1>
+    <p>Manage employee leave applications</p>
+  </div>
+</div>
+
+<!-- Summary -->
+<div class="att-summary">
+  <div class="att-sum-card" style="border-top:3px solid #f59e0b;">
+    <div class="att-sum-num" style="color:#f59e0b;">{{ count_pending }}</div>
+    <div class="att-sum-lbl">Pending</div>
+  </div>
+  <div class="att-sum-card" style="border-top:3px solid #22c55e;">
+    <div class="att-sum-num" style="color:#22c55e;">{{ count_approved }}</div>
+    <div class="att-sum-lbl">Approved</div>
+  </div>
+  <div class="att-sum-card" style="border-top:3px solid #ef4444;">
+    <div class="att-sum-num" style="color:#ef4444;">{{ count_rejected }}</div>
+    <div class="att-sum-lbl">Rejected</div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="table-wrap">
+  <div class="table-toolbar">
+    <form method="get" class="toolbar-left" style="flex-wrap:wrap;gap:8px;">
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search..."/>
+      </div>
+      <select name="status" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Status</option>
+        <option value="pending"   {% if selected_status == "pending"   %}selected{% endif %}>Pending</option>
+        <option value="approved"  {% if selected_status == "approved"  %}selected{% endif %}>Approved</option>
+        <option value="rejected"  {% if selected_status == "rejected"  %}selected{% endif %}>Rejected</option>
+        <option value="cancelled" {% if selected_status == "cancelled" %}selected{% endif %}>Cancelled</option>
+      </select>
+      <select name="leave_type" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Types</option>
+        {% for lt in leave_types %}
+        <option value="{{ lt.id }}" {% if selected_lt == lt.id|stringformat:"s" %}selected{% endif %}>{{ lt.name }}</option>
+        {% endfor %}
+      </select>
+      {% if perms.account.view_leaverequest %}
+      <select name="employee" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Employees</option>
+        {% for emp in all_employees %}
+        <option value="{{ emp.id }}" {% if selected_emp == emp.id|stringformat:"s" %}selected{% endif %}>{{ emp.username }}</option>
+        {% endfor %}
+      </select>
+      {% endif %}
+      <button type="submit" class="btn btn-ghost btn-sm">Filter</button>
+      {% if request.GET.q or request.GET.status or request.GET.leave_type or request.GET.employee %}
+      <a href="{% url 'leave_request_list' %}" class="btn btn-ghost btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <!-- Table -->
+  <div class="desk-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Leave Type</th>
+          <th>From</th>
+          <th>To</th>
+          <th>Days</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Applied</th>
+          <th style="text-align:right;padding-right:20px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for req in requests %}
+        <tr>
+          <td>
+            <div class="ul-user-cell">
+              <div class="avatar" style="width:28px;height:28px;font-size:11px;">{{ req.employee.username|first|upper }}</div>
+              <div>
+                <div style="font-size:12px;font-weight:600;">{{ req.employee.username }}</div>
+                <div style="font-size:10px;color:var(--text3);">{{ req.employee.get_full_name }}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span class="leave-type-badge" style="background:var(--surface2);color:var(--text2);border:1px solid var(--border2);">
+              {{ req.leave_type.name }}
+            </span>
+          </td>
+          <td style="font-size:12px;white-space:nowrap;">{{ req.start_date|date:"M d, Y" }}</td>
+          <td style="font-size:12px;white-space:nowrap;">{{ req.end_date|date:"M d, Y" }}</td>
+          <td style="font-size:13px;font-weight:700;text-align:center;">{{ req.total_days }}</td>
+          <td style="font-size:12px;color:var(--text3);max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            {{ req.reason|default:"--" }}
+          </td>
+          <td><span class="leave-status-badge leave-status-{{ req.status }}">{{ req.get_status_display }}</span></td>
+          <td style="font-size:11px;color:var(--text3);">{{ req.created_at|date:"M d, Y" }}</td>
+          <td>
+            <div class="ul-actions">
+              <a href="{% url 'leave_request_detail' req.id %}" class="ul-action-btn" title="View">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0zM2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                </svg>
+              </a>
+              {% if req.status == "pending" and req.employee == request.user %}
+              <form method="post" action="{% url 'leave_request_cancel' req.id %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="ul-action-btn ul-action-danger" title="Cancel"
+                  onclick="return confirm('Cancel this leave request?')">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  </svg>
+                </button>
+              </form>
+              {% endif %}
+              {% if req.status == "pending" and perms.account.change_leaverequest %}
+              <button type="button" class="ul-action-btn" style="color:var(--success);" title="Approve/Reject"
+                      data-id="{{ req.id }}"
+                      data-username="{{ req.employee.username|escapejs }}"
+                      data-ltype="{{ req.leave_type.name|escapejs }}"
+                      data-days="{{ req.total_days }}"
+                      onclick="openReviewModal(this)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="9">
+          <div class="ul-empty">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+            </svg>
+            <p>No leave requests found</p>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  {% if is_paginated %}
+  <div class="pagination">
+    <span class="pag-info">{{ page_obj.start_index }}-{{ page_obj.end_index }} of {{ paginator.count }}</span>
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}&status={{ request.GET.status }}" class="page-btn">&#8249;</a>
+    {% else %}<button class="page-btn" disabled>&#8249;</button>{% endif %}
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}&status={{ request.GET.status }}" class="page-btn">&#8250;</a>
+    {% else %}<button class="page-btn" disabled>&#8250;</button>{% endif %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- Review Modal -->
+{% if perms.account.change_leaverequest %}
+<div id="reviewModal" class="modal-backdrop" style="display:none;">
+  <div class="modal-box" style="max-width:460px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Review Leave Request</h3>
+      <button onclick="closeReviewModal()" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p id="reviewInfo" style="font-size:13px;color:var(--text2);margin-bottom:16px;"></p>
+      <form method="post" id="reviewForm">
+        {% csrf_token %}
+        <div class="lv-review-actions">
+          <button type="submit" name="action" value="approve" class="btn btn-success btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            Approve
+          </button>
+          <button type="submit" name="action" value="reject" class="btn btn-danger btn-sm">
+            <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+            Reject
+          </button>
+        </div>
+        <div class="form-group" style="margin-top:14px;">
+          <label class="form-label">Note (optional)</label>
+          <textarea name="review_note" class="form-control" rows="3" placeholder="Add a note for the employee..."></textarea>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openReviewModal(btn) {
+  var id       = btn.dataset.id;
+  var username = btn.dataset.username;
+  var ltype    = btn.dataset.ltype;
+  var days     = btn.dataset.days;
+  document.getElementById('reviewModal').style.display = 'flex';
+  document.getElementById('reviewForm').action = '/leave/' + id + '/review/';
+  document.getElementById('reviewInfo').textContent =
+    username + ' requested ' + days + ' day(s) of ' + ltype + ' leave.';
+}
+function closeReviewModal() {
+  document.getElementById('reviewModal').style.display = 'none';
+}
+document.getElementById('reviewModal').addEventListener('click', function(e) {
+  if (e.target === this) closeReviewModal();
+});
+</script>
+{% endif %}
+{% endblock %}

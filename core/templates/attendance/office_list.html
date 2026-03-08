@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block title %}Offices -- AdminCore{% endblock %}
+{% block breadcrumb %}Offices{% endblock %}
+{% block nav_office %}active{% endblock %}
+
+{% block topbar_actions %}
+  {% if perms.account.add_office %}
+  <a href="{% url 'office_create' %}" class="btn btn-primary btn-sm">
+    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+    </svg>
+    Add Office
+  </a>
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Office <span>Locations</span></h1><p>Manage offices and GPS attendance zones</p></div>
+</div>
+
+<div class="table-wrap">
+  <!-- Mobile cards -->
+  <div class="mob-cards">
+    {% for office in offices %}
+    <div class="mob-card">
+      <div class="mob-card-row">
+        <div style="font-weight:600;font-size:13px;">{{ office.name }}</div>
+        {% if office.is_active %}
+          <span class="att-badge att-present">Active</span>
+        {% else %}
+          <span class="att-badge att-absent">Inactive</span>
+        {% endif %}
+      </div>
+      <div class="mob-card-row"><span class="mob-card-label">Address</span><span style="font-size:12px;">{{ office.address|default:"--" }}</span></div>
+      <div class="mob-card-row"><span class="mob-card-label">Lat</span><span style="font-family:var(--font-mono);font-size:12px;">{{ office.latitude }}</span></div>
+      <div class="mob-card-row"><span class="mob-card-label">Lng</span><span style="font-family:var(--font-mono);font-size:12px;">{{ office.longitude }}</span></div>
+      <div class="mob-card-row"><span class="mob-card-label">Radius</span><span style="font-size:12px;">{{ office.allowed_radius }}m</span></div>
+      <div class="mob-card-actions">
+        {% if perms.account.change_office %}
+        <a href="{% url 'office_edit' office.id %}" class="ul-mob-btn">Edit</a>
+        {% endif %}
+        {% if perms.account.delete_office %}
+        <button type="button" class="ul-mob-btn ul-mob-btn-danger"
+                data-url="{% url 'office_delete' office.id %}"
+                data-label="{{ office.name }}"
+                onclick="openDeleteModal(this.dataset.url, this.dataset.label)">Delete</button>
+        {% endif %}
+      </div>
+    </div>
+    {% empty %}
+    <div class="ul-empty">
+      <p>No offices added yet.</p>
+      <a href="{% url 'office_create' %}" class="btn btn-primary btn-sm" style="margin-top:10px;">Add First Office</a>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Desktop table -->
+  <div class="desk-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Office Name</th>
+          <th>Address</th>
+          <th>Latitude</th>
+          <th>Longitude</th>
+          <th>Radius</th>
+          <th>Status</th>
+          <th style="text-align:right;padding-right:20px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for office in offices %}
+        <tr>
+          <td style="font-weight:600;font-size:13px;">{{ office.name }}</td>
+          <td style="font-size:12.5px;color:var(--text3);">{{ office.address|default:"--" }}</td>
+          <td style="font-family:var(--font-mono);font-size:12px;">{{ office.latitude }}</td>
+          <td style="font-family:var(--font-mono);font-size:12px;">{{ office.longitude }}</td>
+          <td>
+            <span class="att-badge att-present">{{ office.allowed_radius }}m</span>
+          </td>
+          <td>
+            {% if office.is_active %}
+              <span class="att-badge att-present">Active</span>
+            {% else %}
+              <span class="att-badge att-absent">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="ul-actions">
+              {% if perms.account.change_office %}
+              <a href="{% url 'office_edit' office.id %}" class="ul-action-btn" title="Edit">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </a>
+              {% endif %}
+              {% if perms.account.delete_office %}
+              <button type="button" class="ul-action-btn ul-action-danger" title="Delete"
+                      data-url="{% url 'office_delete' office.id %}"
+                      data-label="{{ office.name }}"
+                      onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7">
+          <div class="ul-empty">
+            <p>No offices added yet.</p>
+            <a href="{% url 'office_create' %}" class="btn btn-primary btn-sm" style="margin-top:10px;">Add First Office</a>
+          </div>
+        </td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

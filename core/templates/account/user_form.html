@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Create User — AdminCore{% endblock %}
+{% block breadcrumb %}Users / Create{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Create <span>User</span></h1>
+    <p>Add a new user account and assign a role</p>
+  </div>
+  <a href="{% url 'user_list' %}" class="btn btn-ghost">← Back to Users</a>
+</div>
+
+<div class="form-card">
+  <div class="form-card-header">New User Details</div>
+  <form method="post" action="{% url 'user_create' %}">
+    {% csrf_token %}
+    <div class="form-card-body">
+
+      <div class="form-row">
+        <div class="form-group {% if form.first_name.errors %}field-error{% endif %}">
+          <label>First Name</label>
+          <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" placeholder="John" />
+        </div>
+        <div class="form-group {% if form.last_name.errors %}field-error{% endif %}">
+          <label>Last Name</label>
+          <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" placeholder="Doe" />
+        </div>
+      </div>
+
+      <div class="form-group {% if form.username.errors %}field-error{% endif %}">
+        <label>Username <span style="color:var(--danger)">*</span></label>
+        <input type="text" name="username" value="{{ form.username.value|default:'' }}"
+               placeholder="e.g. john_doe" autocomplete="off" required />
+        {% if form.username.errors %}
+          <div class="form-error">{{ form.username.errors.0 }}</div>
+        {% endif %}
+      </div>
+
+      <div class="form-group {% if form.email.errors %}field-error{% endif %}">
+        <label>Email</label>
+        <input type="email" name="email" value="{{ form.email.value|default:'' }}"
+               placeholder="john@example.com" />
+      </div>
+
+      <div class="form-row">
+        <div class="form-group {% if form.password.errors %}field-error{% endif %}">
+          <label>Password <span style="color:var(--danger)">*</span></label>
+          <input type="password" name="password" placeholder="Min. 8 characters" required />
+          {% if form.password.errors %}
+            <div class="form-error">{{ form.password.errors.0 }}</div>
+          {% endif %}
+        </div>
+        <div class="form-group {% if form.confirm_password.errors %}field-error{% endif %}">
+          <label>Confirm Password <span style="color:var(--danger)">*</span></label>
+          <input type="password" name="confirm_password" placeholder="Repeat password" required />
+          {% if form.confirm_password.errors %}
+            <div class="form-error">{{ form.confirm_password.errors.0 }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Role / Group</label>
+        <select name="role">
+          <option value="">— No Role —</option>
+          {% for group in form.role.field.queryset %}
+            <option value="{{ group.id }}"
+              {% if form.role.value == group.id|stringformat:"s" %}selected{% endif %}>
+              {{ group.name }}
+            </option>
+          {% endfor %}
+        </select>
+        <div class="form-hint">Assign a permission group to this user.</div>
+      </div>
+
+    </div>
+    <div class="form-card-footer">
+      <a href="{% url 'user_list' %}" class="btn btn-ghost">Cancel</a>
+      <button type="submit" class="btn btn-primary">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+        Create User
+      </button>
+    </div>
+  </form>
+</div>
+{% endblock %}

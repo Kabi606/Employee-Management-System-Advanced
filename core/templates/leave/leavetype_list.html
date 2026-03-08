@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}Leave Types -- AdminCore{% endblock %}
+{% block breadcrumb %}Leave Types{% endblock %}
+{% block nav_leave %}active{% endblock %}
+
+{% block topbar_actions %}
+{% if perms.account.add_leavetype %}
+<a href="{% url 'leavetype_create' %}" class="btn btn-primary btn-sm">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Add Leave Type
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Leave Types</h1><p>Configure leave categories and allowances</p></div>
+</div>
+<div class="table-wrap">
+  <div class="desk-table">
+    <table>
+      <thead>
+        <tr><th>Name</th><th>Max Days/Year</th><th>Description</th><th>Status</th><th style="text-align:right;padding-right:20px;">Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for lt in leave_types %}
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div class="lt-color-dot" data-color="{{ lt.color|default:'#94a3b8' }}"></div>
+              <span style="font-weight:600;font-size:13px;">{{ lt.name }}</span>
+            </div>
+          </td>
+          <td style="font-weight:700;font-size:14px;">{{ lt.max_days }}</td>
+          <td style="font-size:12px;color:var(--text3);">{{ lt.description|default:"--"|truncatechars:60 }}</td>
+          <td>
+            {% if lt.is_active %}
+            <span class="att-badge att-present">Active</span>
+            {% else %}
+            <span class="att-badge att-absent">Inactive</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="ul-actions">
+              {% if perms.account.change_leavetype %}
+              <a href="{% url 'leavetype_edit' lt.id %}" class="ul-action-btn" title="Edit">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+              </a>
+              {% endif %}
+              {% if perms.account.delete_leavetype %}
+              <button type="button" class="ul-action-btn ul-action-danger" title="Delete"
+                      data-url="{% url 'leavetype_delete' lt.id %}"
+                      data-label="{{ lt.name }}"
+                      onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+              </button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5"><div class="ul-empty"><p>No leave types yet. Add one to get started.</p></div></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<style>
+.lt-color-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: #94a3b8;
+}
+</style>
+<script>
+document.querySelectorAll('.lt-color-dot').forEach(function(el) {
+  el.style.backgroundColor = el.dataset.color;
+});
+</script>
+{% endblock %}

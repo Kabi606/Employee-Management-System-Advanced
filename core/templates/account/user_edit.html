@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% block title %}Edit {{ object.username }} — AdminCore{% endblock %}
+{% block breadcrumb %}Users / Edit{% endblock %}
+{% block nav_users %}active{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Edit <span>{{ object.username }}</span></h1>
+    <p>Update user details, role and account status</p>
+  </div>
+  <a href="{% url 'user_list' %}" class="btn btn-ghost">&#8592; Back to Users</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;max-width:900px;">
+
+  {# ── Left: Main details form ── #}
+  <div class="form-card" style="max-width:100%;">
+    <div class="form-card-header" style="display:flex;align-items:center;gap:12px;">
+      <div class="avatar" style="width:36px;height:36px;flex-shrink:0;">
+        {% if object.profile.avatar %}
+          <img src="{{ object.profile.avatar.url }}" alt="" />
+        {% else %}
+          {{ object.username|first|upper }}
+        {% endif %}
+      </div>
+      <span>Account Details</span>
+    </div>
+
+    <form method="post" action="{% url 'user_edit' object.id %}">
+      {% csrf_token %}
+      <div class="form-card-body">
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First Name</label>
+            <input type="text" name="first_name"
+                   value="{{ object.first_name }}"
+                   placeholder="John" />
+          </div>
+          <div class="form-group">
+            <label>Last Name</label>
+            <input type="text" name="last_name"
+                   value="{{ object.last_name }}"
+                   placeholder="Doe" />
+          </div>
+        </div>
+
+        <div class="form-group {% if form.username.errors %}field-error{% endif %}">
+          <label>Username <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="username"
+                 value="{{ object.username }}"
+                 required autocomplete="off" />
+          {% if form.username.errors %}
+            <div class="form-error">{{ form.username.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group {% if form.email.errors %}field-error{% endif %}">
+          <label>Email</label>
+          <input type="email" name="email"
+                 value="{{ object.email }}"
+                 placeholder="user@example.com" />
+          {% if form.email.errors %}
+            <div class="form-error">{{ form.email.errors.0 }}</div>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label>Role / Group</label>
+          <select name="role">
+            <option value="">-- No Role --</option>
+            {% for group in form.role.field.queryset %}
+              <option value="{{ group.id }}"
+                {% if object.groups.all.0.id == group.id %}selected{% endif %}>
+                {{ group.name }}
+              </option>
+            {% endfor %}
+          </select>
+          <div class="form-hint">Assigning a new role replaces the existing one.</div>
+        </div>
+
+        <div class="form-group" style="display:flex;align-items:center;gap:10px;">
+          <input type="checkbox" name="is_active" id="is_active"
+                 {% if object.is_active %}checked{% endif %} />
+          <label for="is_active"
+                 style="margin:0;text-transform:none;font-size:13px;cursor:pointer;color:var(--text);">
+            Active account (user can log in)
+          </label>
+        </div>
+
+      </div>
+      <div class="form-card-footer">
+        <a href="{% url 'user_list' %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+          Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {# ── Right: Quick actions panel ── #}
+  <div style="display:flex;flex-direction:column;gap:16px;align-self:start;">
+
+    {# User info card #}
+    <div class="card" style="padding:20px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">
+        User Info
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;font-size:12px;">
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">User ID</span>
+          <span style="font-family:var(--font-mono);">#{{ object.id }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">Joined</span>
+          <span>{{ object.date_joined|date:"M d, Y" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">Last Login</span>
+          <span>{{ object.last_login|date:"M d, Y H:i"|default:"Never" }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">Status</span>
+          {% if object.is_active %}
+            <span class="badge badge-green">Active</span>
+          {% else %}
+            <span class="badge badge-red">Inactive</span>
+          {% endif %}
+        </div>
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">Role</span>
+          <span>{{ object.groups.first.name|default:"No Role" }}</span>
+        </div>
+        {% if object.is_superuser %}
+        <div style="display:flex;justify-content:space-between;">
+          <span style="color:var(--muted);">Superuser</span>
+          <span class="badge badge-amber">Yes</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# Quick actions card #}
+    <div class="card" style="padding:20px;">
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;">
+        Quick Actions
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+
+        <a href="{% url 'change_password' object.id %}" class="btn btn-ghost"
+           style="justify-content:flex-start;width:100%;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+          Change Password
+        </a>
+
+        <a href="{% url 'user_profile_admin' object.id %}" class="btn btn-ghost"
+           style="justify-content:flex-start;width:100%;">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M5.121 17.804A7 7 0 0112 15a7 7 0 016.879 2.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+          Edit Profile / Avatar
+        </a>
+
+        {% if perms.auth.delete_user %}
+        <button type="button" class="btn btn-danger"
+                style="justify-content:flex-start;width:100%;"
+                data-url="{% url 'user_delete' object.id %}"
+                data-label="{{ object.username }}"
+                onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="15" height="15">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+          </svg>
+          Delete This User
+        </button>
+        {% endif %}
+
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Notices -- AdminCore{% endblock %}
+{% block breadcrumb %}Notices{% endblock %}
+{% block nav_notice %}active{% endblock %}
+
+{% block topbar_actions %}
+{% if perms.account.add_notice %}
+<a href="{% url 'notice_create' %}" class="btn btn-primary btn-sm">
+  <svg width="15" height="15" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+  </svg>
+  Post Notice
+</a>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div><h1>Notices</h1><p>Company announcements and communications</p></div>
+</div>
+
+<!-- Pinned notices -->
+{% if pinned_notices %}
+<div style="margin-bottom:16px;">
+  {% for notice in pinned_notices %}
+  <a href="{% url 'notice_detail' notice.id %}" class="notice-pinned-card notice-priority-{{ notice.priority }}">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+      </svg>
+      <span style="font-weight:700;font-size:13px;">{{ notice.title }}</span>
+      <span class="notice-priority-badge notice-priority-{{ notice.priority }}">{{ notice.get_priority_display }}</span>
+    </div>
+    <div style="font-size:11px;color:var(--text3);margin-top:4px;">{{ notice.content|truncatechars:120 }}</div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Filters + list -->
+<div class="table-wrap">
+  <div class="table-toolbar">
+    <form method="get" class="toolbar-left">
+      <div class="search-box">
+        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"/>
+        </svg>
+        <input type="text" name="q" value="{{ request.GET.q }}" placeholder="Search notices..."/>
+      </div>
+      <select name="priority" class="filter-select" onchange="this.form.submit()">
+        <option value="">All Priority</option>
+        <option value="normal"    {% if selected_priority == "normal"    %}selected{% endif %}>Normal</option>
+        <option value="important" {% if selected_priority == "important" %}selected{% endif %}>Important</option>
+        <option value="urgent"    {% if selected_priority == "urgent"    %}selected{% endif %}>Urgent</option>
+      </select>
+      <button type="submit" class="btn btn-ghost btn-sm">Search</button>
+      {% if request.GET.q or request.GET.priority %}
+      <a href="{% url 'notice_list' %}" class="btn btn-ghost btn-sm">Clear</a>
+      {% endif %}
+    </form>
+  </div>
+
+  <div style="padding:8px 0;">
+    {% for notice in notices %}
+    <div class="notice-card {% if notice.is_pinned %}notice-card-pinned{% endif %}">
+      <div class="notice-card-left">
+        <div class="notice-priority-dot notice-dot-{{ notice.priority }}"></div>
+      </div>
+      <div class="notice-card-body">
+        <div class="notice-card-head">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <a href="{% url 'notice_detail' notice.id %}" class="notice-card-title">{{ notice.title }}</a>
+            <span class="notice-priority-badge notice-priority-{{ notice.priority }}">{{ notice.get_priority_display }}</span>
+            {% if notice.is_pinned %}
+            <span class="notice-priority-badge" style="background:#fef9c3;color:#854d0e;border-color:#fde68a;">Pinned</span>
+            {% endif %}
+          </div>
+          <div style="font-size:11px;color:var(--text3);white-space:nowrap;">{{ notice.publish_at|date:"M d, Y" }}</div>
+        </div>
+        <div class="notice-card-preview">{{ notice.content|truncatechars:160 }}</div>
+        <div class="notice-card-meta">
+          <span>By {{ notice.posted_by.username|default:"System" }}</span>
+          <span>&bull;</span>
+          <span>{{ notice.audience_label }}</span>
+          {% if notice.expires_at %}<span>&bull;</span><span>Expires {{ notice.expires_at|date:"M d, Y" }}</span>{% endif %}
+        </div>
+      </div>
+      {% if perms.account.change_notice or perms.account.delete_notice %}
+      <div class="notice-card-actions">
+        {% if perms.account.change_notice %}
+        <a href="{% url 'notice_edit' notice.id %}" class="ul-action-btn" title="Edit">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+        </a>
+        {% endif %}
+        {% if perms.account.delete_notice %}
+        <button class="ul-action-btn ul-action-danger" title="Delete"
+                data-url="{% url 'notice_delete' notice.id %}"
+                data-label="{{ notice.title }}"
+                onclick="openDeleteModal(this.dataset.url, this.dataset.label)">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" width="14" height="14"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% empty %}
+    <div class="ul-empty" style="padding:48px;">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"/>
+      </svg>
+      <p>No notices found</p>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+  <div class="pagination">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="page-btn">&#8249;</a>{% else %}<button class="page-btn" disabled>&#8249;</button>{% endif %}
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="page-btn">&#8250;</a>{% else %}<button class="page-btn" disabled>&#8250;</button>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
